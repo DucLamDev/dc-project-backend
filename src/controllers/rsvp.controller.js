@@ -12,7 +12,9 @@ export async function postRsvp(req, res) {
   }
 
   const rsvp = await submitRsvp(req.app, req.body);
-  await sendConfirmationEmail(rsvp);
+  if (["ceremony", "reception", "both"].includes(rsvp.attendance)) {
+    await sendConfirmationEmail(rsvp);
+  }
   res.status(201).json({ ok: true, rsvp });
 }
 

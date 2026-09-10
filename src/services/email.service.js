@@ -21,7 +21,7 @@ export async function sendConfirmationEmail(rsvp) {
   await transporter.sendMail({
     from: MAIL_FROM || SMTP_USER,
     to: rsvp.email,
-    subject: "Confirmation RSVP - Danielle & Chris",
+    subject: "Confirmation RSVP - Stella & Geovanni",
     html: buildConfirmationTemplate(rsvp)
   });
 
@@ -30,29 +30,47 @@ export async function sendConfirmationEmail(rsvp) {
 
 function buildConfirmationTemplate(rsvp) {
   const attendanceLabels = {
-    ceremony: "Cérémonie uniquement",
-    reception: "Réception uniquement",
-    both: "Cérémonie et réception",
-    decline: "Ne pourra pas assister"
+    ceremony: "Présent à la cérémonie uniquement",
+    reception: "Présent à la réception uniquement",
+    both: "Présent aux deux",
+    decline: "Absent"
   };
+  const attendsCeremony = rsvp.attendance === "ceremony" || rsvp.attendance === "both";
+  const attendsReception = rsvp.attendance === "reception" || rsvp.attendance === "both";
+  const venueRows = [
+    attendsCeremony ? "Cérémonie civile : 9h00, Mairie de Toulouse" : "",
+    attendsReception ? "Vin d'honneur et réception : à partir de 16h00" : "",
+    "Point GPS de rassemblement : https://www.google.com/maps/search/?api=1&query=Mairie+de+Toulouse"
+  ].filter(Boolean);
 
   return `
     <div style="margin:0;padding:32px;background:#FDFBF7;color:#2C2824;font-family:Arial,sans-serif;">
       <div style="max-width:620px;margin:0 auto;background:#fffaf4;border:1px solid #eadfd0;padding:32px;">
-        <div style="font-family:Georgia,serif;font-size:44px;text-align:center;">D | C</div>
+        <div style="font-family:Georgia,serif;font-size:44px;text-align:center;">S | G</div>
         <h1 style="font-family:Georgia,serif;text-align:center;font-size:34px;margin:22px 0 8px;">Merci pour votre réponse</h1>
-        <p style="text-align:center;margin:0 0 24px;">Nous avons bien enregistré votre RSVP.</p>
+        <p style="text-align:center;margin:0 0 24px;">Nous avons bien enregistré votre RSVP pour le mariage de Stella & Geovanni.</p>
         <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Nom</td><td style="padding:10px;border-top:1px solid #eadfd0;"><strong>${rsvp.fullName}</strong></td></tr>
-          <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Présence</td><td style="padding:10px;border-top:1px solid #eadfd0;"><strong>${attendanceLabels[rsvp.attendance] || rsvp.attendance}</strong></td></tr>
-          <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Personnes</td><td style="padding:10px;border-top:1px solid #eadfd0;">${rsvp.partySize}</td></tr>
-          <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Menu</td><td style="padding:10px;border-top:1px solid #eadfd0;">${rsvp.menuChoice || "-"}</td></tr>
+          <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Nom</td><td style="padding:10px;border-top:1px solid #eadfd0;"><strong>${escapeHtml(rsvp.fullName)}</strong></td></tr>
+          <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Présence</td><td style="padding:10px;border-top:1px solid #eadfd0;"><strong>${attendanceLabels[rsvp.attendance] || escapeHtml(rsvp.attendance)}</strong></td></tr>
+          <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Personnes</td><td style="padding:10px;border-top:1px solid #eadfd0;">${escapeHtml(rsvp.partySize)}</td></tr>
+          <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Menu</td><td style="padding:10px;border-top:1px solid #eadfd0;">${escapeHtml(rsvp.menuChoice || "-")}</td></tr>
         </table>
-        <p style="margin:24px 0 0;line-height:1.7;">
-          Rendez-vous le 10 octobre 2026 à Coto de Caza, Californie.
-          Point GPS: 33.5945, -117.5867.
-        </p>
+        <div style="margin:24px 0 0;line-height:1.7;">
+          <p style="margin:0 0 8px;"><strong>Date :</strong> 07 novembre 2026</p>
+          <ul style="margin:0;padding-left:20px;">
+            ${venueRows.map((row) => `<li>${escapeHtml(row)}</li>`).join("")}
+          </ul>
+        </div>
       </div>
     </div>
   `;
+}
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }

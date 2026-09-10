@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 
 export function login(req, res) {
-  const adminPassword = process.env.ADMIN_PASSWORD || "danielle-chris-2026";
+  const adminPassword = process.env.ADMIN_PASSWORD || "stella-geovanni-2026";
 
   if (req.body.password !== adminPassword) {
     return res.status(401).json({ message: "Invalid password." });
