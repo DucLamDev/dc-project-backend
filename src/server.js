@@ -20,7 +20,8 @@ app.use(express.json({ limit: "1mb" }));
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
-    database: req.app.locals.databaseConnected ? "mongodb" : "memory"
+    database: req.app.locals.databaseConnected ? "mongodb" : "memory",
+    email: process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS ? "configured" : "disabled"
   });
 });
 

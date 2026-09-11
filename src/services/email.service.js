@@ -1,25 +1,32 @@
 import nodemailer from "nodemailer";
 
 export async function sendConfirmationEmail(rsvp) {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM } = process.env;
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, SMTP_TIMEOUT_MS } = process.env;
 
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
     console.info(`SMTP is not configured. Confirmation email skipped for ${rsvp.email}.`);
     return { skipped: true };
   }
 
+  const port = Number(SMTP_PORT || 587);
+  const timeout = Number(SMTP_TIMEOUT_MS || 12000);
+  const smtpPassword = SMTP_PASS.replace(/\s/g, "");
   const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
-    port: Number(SMTP_PORT || 587),
-    secure: Number(SMTP_PORT) === 465,
+    port,
+    secure: port === 465,
+    connectionTimeout: timeout,
+    greetingTimeout: timeout,
+    socketTimeout: timeout,
     auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASS
-    }
+      user: SMTP_USER.trim(),
+      pass: smtpPassword
+    },
+    tls: { minVersion: "TLSv1.2" }
   });
 
   await transporter.sendMail({
-    from: MAIL_FROM || SMTP_USER,
+    from: MAIL_FROM?.trim() || `Stella & Geovanni <${SMTP_USER.trim()}>`,
     to: rsvp.email,
     subject: "Confirmation RSVP - Stella & Geovanni",
     html: buildConfirmationTemplate(rsvp)
@@ -52,8 +59,6 @@ function buildConfirmationTemplate(rsvp) {
         <table style="width:100%;border-collapse:collapse;">
           <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Nom</td><td style="padding:10px;border-top:1px solid #eadfd0;"><strong>${escapeHtml(rsvp.fullName)}</strong></td></tr>
           <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Présence</td><td style="padding:10px;border-top:1px solid #eadfd0;"><strong>${attendanceLabels[rsvp.attendance] || escapeHtml(rsvp.attendance)}</strong></td></tr>
-          <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Personnes</td><td style="padding:10px;border-top:1px solid #eadfd0;">${escapeHtml(rsvp.partySize)}</td></tr>
-          <tr><td style="padding:10px;border-top:1px solid #eadfd0;">Menu</td><td style="padding:10px;border-top:1px solid #eadfd0;">${escapeHtml(rsvp.menuChoice || "-")}</td></tr>
         </table>
         <div style="margin:24px 0 0;line-height:1.7;">
           <p style="margin:0 0 8px;"><strong>Date :</strong> 07 novembre 2026</p>

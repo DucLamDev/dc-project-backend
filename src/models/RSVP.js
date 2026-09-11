@@ -26,16 +26,6 @@ const rsvpSchema = new mongoose.Schema(
       enum: ["ceremony", "reception", "both", "decline"],
       required: true
     },
-    partySize: {
-      type: Number,
-      default: 1,
-      min: 0
-    },
-    menuChoice: {
-      type: String,
-      enum: ["menu1", "menu2", null],
-      default: null
-    },
     dietaryRequirements: {
       type: String,
       default: ""

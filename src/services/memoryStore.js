@@ -1,24 +1,6 @@
 import { normalizeName } from "../utils/normalize.js";
 
-const initialGuests = [
-  "Camille Martin",
-  "Julien Bernard",
-  "Sophie Moreau",
-  "Taylor Morgan",
-  "Alex Carter"
-];
-
-let guests = initialGuests.map((fullName, index) => ({
-  id: `guest-${index + 1}`,
-  fullName,
-  normalizedName: normalizeName(fullName),
-  email: "",
-  phone: "",
-  allowedPlusOnes: 1,
-  notes: "",
-  createdAt: new Date(),
-  updatedAt: new Date()
-}));
+let guests = [];
 
 let rsvps = [];
 

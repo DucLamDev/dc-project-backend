@@ -12,10 +12,19 @@ export async function postRsvp(req, res) {
   }
 
   const rsvp = await submitRsvp(req.app, req.body);
+  let confirmationEmail = "not-required";
+
   if (["ceremony", "reception", "both"].includes(rsvp.attendance)) {
-    await sendConfirmationEmail(rsvp);
+    try {
+      const emailResult = await sendConfirmationEmail(rsvp);
+      confirmationEmail = emailResult.skipped ? "skipped" : "sent";
+    } catch (error) {
+      confirmationEmail = "failed";
+      console.error(`Confirmation email failed for ${rsvp.email}:`, error.message);
+    }
   }
-  res.status(201).json({ ok: true, rsvp });
+
+  res.status(201).json({ ok: true, rsvp, confirmationEmail });
 }
 
 export async function getDashboard(req, res) {
@@ -31,8 +40,6 @@ export async function exportRsvps(req, res) {
       email: rsvp.email,
       phone: rsvp.phone,
       attendance: rsvp.attendance,
-      partySize: rsvp.partySize,
-      menuChoice: rsvp.menuChoice,
       dietaryRequirements: rsvp.dietaryRequirements,
       message: rsvp.message,
       confirmedAt: rsvp.updatedAt || rsvp.createdAt

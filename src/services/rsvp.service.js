@@ -13,16 +13,13 @@ export async function submitRsvp(app, payload) {
     throw error;
   }
 
-  const attendsReception = payload.attendance === "reception" || payload.attendance === "both";
   const data = {
     guest: guest?._id || guest?.id,
     fullName: payload.fullName,
     email: payload.email,
     phone: payload.phone || "",
     attendance: payload.attendance,
-    partySize: Number(payload.partySize || 1),
-    menuChoice: attendsReception ? payload.menuChoice || "menu1" : null,
-    dietaryRequirements: attendsReception ? payload.dietaryRequirements || "" : "",
+    dietaryRequirements: ["reception", "both"].includes(payload.attendance) ? payload.dietaryRequirements || "" : "",
     message: payload.message || ""
   };
 
@@ -30,10 +27,11 @@ export async function submitRsvp(app, payload) {
     return memoryStore.upsertRsvp(data);
   }
 
-  return RSVP.findOneAndUpdate({ fullName: new RegExp(`^${escapeRegExp(payload.fullName)}$`, "i") }, data, {
+  return RSVP.findOneAndUpdate({ fullName: new RegExp(`^${escapeRegExp(payload.fullName)}$`, "i") }, { $set: data, $unset: { partySize: "", menuChoice: "" } }, {
     new: true,
     upsert: true,
-    setDefaultsOnInsert: true
+    setDefaultsOnInsert: true,
+    strict: false
   }).lean();
 }
 
@@ -53,15 +51,11 @@ export async function getRsvpStats(app) {
 
   const attending = rsvps.filter((rsvp) => ["ceremony", "reception", "both"].includes(rsvp.attendance)).length;
   const declined = rsvps.filter((rsvp) => rsvp.attendance === "decline").length;
-  const menu1 = rsvps.filter((rsvp) => rsvp.menuChoice === "menu1").length;
-  const menu2 = rsvps.filter((rsvp) => rsvp.menuChoice === "menu2").length;
 
   return {
     attending,
     declined,
-    pending: Math.max(guests.length - rsvps.length, 0),
-    menu1,
-    menu2
+    pending: Math.max(guests.length - rsvps.length, 0)
   };
 }
 
