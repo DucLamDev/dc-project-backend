@@ -1,38 +1,101 @@
 import nodemailer from "nodemailer";
 
-export async function sendConfirmationEmail(rsvp) {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, SMTP_TIMEOUT_MS } = process.env;
+export function getEmailConfigStatus() {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM } = process.env;
+  const missing = [
+    ["SMTP_HOST", SMTP_HOST],
+    ["SMTP_USER", SMTP_USER],
+    ["SMTP_PASS", SMTP_PASS]
+  ]
+    .filter(([, value]) => !value?.trim())
+    .map(([name]) => name);
+  const port = parseSmtpPort(SMTP_PORT);
 
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-    console.info(`SMTP is not configured. Confirmation email skipped for ${rsvp.email}.`);
-    return { skipped: true };
+  return {
+    configured: missing.length === 0,
+    missing,
+    host: SMTP_HOST?.trim() || "",
+    port,
+    secure: port === 465,
+    user: SMTP_USER?.trim() || "",
+    from: MAIL_FROM?.trim() || ""
+  };
+}
+
+export function describeEmailError(error) {
+  return {
+    message: error?.message,
+    code: error?.code,
+    command: error?.command,
+    responseCode: error?.responseCode,
+    response: error?.response
+  };
+}
+
+export async function sendConfirmationEmail(rsvp) {
+  return sendEmail({
+    to: rsvp.email,
+    subject: "Confirmation RSVP - Stella & Geovanni",
+    html: buildConfirmationTemplate(rsvp),
+    logContext: `Confirmation email skipped for ${rsvp.email}.`
+  });
+}
+
+export async function sendTestEmail(to) {
+  const sentAt = new Date().toISOString();
+
+  return sendEmail({
+    to,
+    subject: "SMTP test - Stella & Geovanni",
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;">
+        <h1>SMTP test</h1>
+        <p>This email confirms that the wedding backend can send email via SMTP.</p>
+        <p><strong>Sent at:</strong> ${escapeHtml(sentAt)}</p>
+      </div>
+    `,
+    logContext: `SMTP test email skipped for ${to}.`
+  });
+}
+
+async function sendEmail({ to, subject, html, logContext }) {
+  const { SMTP_PASS, SMTP_TIMEOUT_MS } = process.env;
+  const config = getEmailConfigStatus();
+
+  if (!config.configured) {
+    console.info(`SMTP is not configured. Missing ${config.missing.join(", ")}. ${logContext}`);
+    return { skipped: true, missing: config.missing };
   }
 
-  const port = Number(SMTP_PORT || 587);
   const timeout = Number(SMTP_TIMEOUT_MS || 12000);
   const smtpPassword = SMTP_PASS.replace(/\s/g, "");
   const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port,
-    secure: port === 465,
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
     connectionTimeout: timeout,
     greetingTimeout: timeout,
     socketTimeout: timeout,
     auth: {
-      user: SMTP_USER.trim(),
+      user: config.user,
       pass: smtpPassword
     },
     tls: { minVersion: "TLSv1.2" }
   });
 
   await transporter.sendMail({
-    from: MAIL_FROM?.trim() || `Stella & Geovanni <${SMTP_USER.trim()}>`,
-    to: rsvp.email,
-    subject: "Confirmation RSVP - Stella & Geovanni",
-    html: buildConfirmationTemplate(rsvp)
+    from: config.from || `Stella & Geovanni <${config.user}>`,
+    to,
+    subject,
+    html
   });
 
   return { skipped: false };
+}
+
+function parseSmtpPort(value) {
+  const port = Number(value || 587);
+  return Number.isInteger(port) && port > 0 ? port : 587;
 }
 
 function buildConfirmationTemplate(rsvp) {

@@ -5,6 +5,7 @@ import { connectDatabase } from "./config/database.js";
 import adminRoutes from "./routes/admin.routes.js";
 import guestRoutes from "./routes/guest.routes.js";
 import rsvpRoutes from "./routes/rsvp.routes.js";
+import { getEmailConfigStatus } from "./services/email.service.js";
 
 dotenv.config();
 
@@ -18,10 +19,13 @@ app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173" }));
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/api/health", (req, res) => {
+  const emailConfig = getEmailConfigStatus();
+
   res.json({
     ok: true,
     database: req.app.locals.databaseConnected ? "mongodb" : "memory",
-    email: process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS ? "configured" : "disabled"
+    email: emailConfig.configured ? "configured" : "disabled",
+    emailMissing: emailConfig.configured ? [] : emailConfig.missing
   });
 });
 

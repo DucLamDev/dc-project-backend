@@ -1,5 +1,5 @@
 import { stringify } from "csv-stringify/sync";
-import { sendConfirmationEmail } from "../services/email.service.js";
+import { describeEmailError, sendConfirmationEmail } from "../services/email.service.js";
 import { getRsvpStats, listRsvps, submitRsvp } from "../services/rsvp.service.js";
 import { listGuests } from "../services/guest.service.js";
 
@@ -20,7 +20,7 @@ export async function postRsvp(req, res) {
       confirmationEmail = emailResult.skipped ? "skipped" : "sent";
     } catch (error) {
       confirmationEmail = "failed";
-      console.error(`Confirmation email failed for ${rsvp.email}:`, error.message);
+      console.error(`Confirmation email failed for ${rsvp.email}:`, describeEmailError(error));
     }
   }
 
